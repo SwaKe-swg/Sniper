@@ -1,0 +1,26 @@
+        {
+          "$schema": "https://docs.railway.app/schemas/railway.schema.json",
+          "name": "zephyr-sniper-bot",
+          "start": "python main.py",
+          "build": {
+            "builder": "dockerfile"
+          },
+          "deploy": {
+            "startCommand": "python main.py",
+            "healthcheckPath": "/",
+            "healthcheckTimeout": 300
+          },
+          "variables": {
+            "TELEGRAM_BOT_TOKEN": "YOUR_TELEGRAM_BOT_TOKEN",
+            "TELEGRAM_CHAT_ID": "YOUR_TELEGRAM_CHAT_ID",
+            "HELIUS_API_KEY": "YOUR_HELIUS_API_KEY",
+            "CRYPTOPANIC_API_KEY": "YOUR_CRYPTOPANIC_API_KEY",
+            "GNEWS_API_KEY": "YOUR_GNEWS_API_KEY",
+            "DEXSCREENER_WS_URL": "wss://io.dexscreener.com/ws/solana/pairs",
+            "MIN_LIQUIDITY": "5000",
+            "MAX_MARKET_CAP": "50000",
+            "MAX_AGE_MINUTES": "5",
+            "MIN_HOLDERS": "10"
+          }
+        }
+        
