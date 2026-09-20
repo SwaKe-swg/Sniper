@@ -1,4 +1,3 @@
-# sniper-bot-optimized/main.py
 import os
 import asyncio
 import traceback
@@ -11,7 +10,7 @@ from config import Config
 from dex.ws_client import DexscreenerWSClient
 from dex.rest import DexscreenerRESTClient
 from filters.base import Filters
-from alerts.tg import send_pump_alert
+from alerts.tg import send_pump_alert, send_alert
 from news.cryptopanic import CryptoPanicClient
 from news.gnews import GNewsClient
 from utils.helius import HeliusClient # Per ora Helius non è integrato nei filtri di base
@@ -75,18 +74,6 @@ async def process_new_pair(data: dict):
                 if rest_data and rest_data.get("pairs"):
                     full_pair_data = rest_data["pairs"][0] # Prendi il primo (o il più rilevante)
                     
-                    # Aggiorna i dati per i filtri con info REST
-                    # holders = full_pair_data.get("holders", 0) # Dexscreener REST non sempre ha holders diretti
-# Per holders precisi serve API on-chain come Helius o Solscan
-                    # Per ora useremo un valore placeholder per holders o lo ometteremo se non disponibile
-                    
-                    # Qui puoi integrare una chiamata a HeliusClient se hai bisogno di holders precisi
-                    # if helius_client and token_address:
-                    #     holders = helius_client.get_token_holders(token_address) # Implementare questa logica in HeliusClient
-
-                    # Usiamo i filtri con i dati più accurati disponibili
-                    # Placeholder per holders se non disponibili via REST in questo formato
-                    # Potresti dover adattare il filtro in filters.base.py per gestire questo
                     synthetic_pair_for_filter = {
                         'liquidity': full_pair_data.get("liquidity", {}).get("usd", 0),
                         'market_cap': full_pair_data.get("fdv", 0) if full_pair_data.get("fdv") else full_pair_data.get("marketCap", 0),
@@ -112,7 +99,7 @@ async def process_new_pair(data: dict):
                             synthetic_pair_for_filter['market_cap'],
                             synthetic_pair_for_filter['liquidity'],
                             synthetic_pair_for_filter['age_minutes'],
-                            synthetic_pair_for_filter['holders'], # Placeholder holders
+                            synthetic_pair_for_filter['holders'],
                             full_pair_data.get("volume", {}).get("h24", 0),
                             price_change_h1, price_change_h6, price_change_h24
                         )
@@ -122,8 +109,6 @@ async def process_new_pair(data: dict):
                         print(f"[{datetime.now()}] Pair {symbol} non ha superato i filtri dopo REST check.")
                 else:
                     print(f"[{datetime.now()}] Nessun dato REST trovato per {token_address}.")
-            
-    # Gestisci altri tipi di messaggi da Dexscreener WS se necessario
 
 async def monitor_dexscreener_solana():
     """Connette e monitora Dexscreener WS per nuovi pair e aggiornamenti."""
@@ -143,14 +128,15 @@ async def monitor_news_narrative():
             for news in news_items:
                 title = news.get("title", "N/A")
                 url = news.get("url", "#")
-if url not in NEWS_CACHE:
+                
+                if url not in NEWS_CACHE:
                     message = (
                         f"📰 *News/Narrative Alert!* 📰\n\n"
                         f"*{title}*\n"
                         f"[Link all'articolo]({url})\n\n"
                         f"Controlla se c'è hype bro."
                     )
-                    await send_alert(message, Config.TELEGRAM_CHAT_ID)
+                    await send_alert(telegram_bot, message, Config.TELEGRAM_CHAT_ID)
                     NEWS_CACHE.add(url)
                     print(f"[{datetime.now()}] News alert inviato: {title}")
         except Exception as e:
@@ -170,9 +156,9 @@ async def main():
     if cryptopanic_client or gnews_client:
         asyncio.create_task(monitor_news_narrative())
 
-    # Mantieni il bot in esecuzione (polling o placeholder per comandi futuri)
+    # Mantieni il bot in esecuzione
     while True:
-        await asyncio.sleep(60) # Il polling di Telegram non è necessario qui, i task girano in background
+        await asyncio.sleep(60)
 
 if __name__ == "__main__":
     try:
