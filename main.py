@@ -8,6 +8,36 @@ from telegram.error import TelegramError
 
 # Importa le configurazioni
 from config import Config
+    # sniper-bot-optimized/main.py
+    import os
+    import asyncio
+    import traceback
+    from datetime import datetime
+    from telegram import Bot
+    from telegram.error import TelegramError
+
+    # Importa le configurazioni
+    from config import Config
+    from dex.ws_client import DexscreenerWSClient
+    from dex.rest import DexscreenerRESTClient
+    from filters.base import Filters
+    from alerts.tg import send_pump_alert
+    from news.cryptopanic import CryptoPanicClient
+    from news.gnews import GNewsClient
+    # from utils.helius import HeliusClient # Per ora Helius non è integrato nei filtri di base
+
+    # --- INIZIO DEBUG ---
+    # Controlla se le variabili d'ambiente sono state caricate correttamente
+    print(f"DEBUG: TELEGRAM_BOT_TOKEN dal config: {Config.TELEGRAM_BOT_TOKEN}")
+    print(f"DEBUG: CHAT_ID dal config: {Config.TELEGRAM_CHAT_ID}")
+    if not Config.TELEGRAM_BOT_TOKEN:
+        print("ERRORE CRITICO: TELEGRAM_BOT_TOKEN è vuoto o None. Controlla le variabili d'ambiente su Railway!")
+        raise ValueError("TELEGRAM_BOT_TOKEN non configurato o non letto correttamente.")
+    # --- FINE DEBUG ---
+
+    # Inizializza il bot Telegram
+    telegram_bot = Bot(Config.TELEGRAM_BOT_TOKEN) # <--- Questa riga è quella che dava errore
+    
 from dex.ws_client import DexscreenerWSClient
 from dex.rest import DexscreenerRESTClient
 from filters.base import Filters
