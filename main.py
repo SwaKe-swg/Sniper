@@ -50,16 +50,17 @@ NEWS_CACHE = set()
 # --- Funzioni di Monitoraggio ---
 async def process_new_pair(data: dict):
     """Processa i dati di un nuovo pair ricevuto da Dexscreener WebSocket."""
-    # Normalizza il formato del pair_info indipendentemente dal 'type'
-    pair_info = data.get("pair") 
-    event_type = data.get("type") # Potrebbe essere 'pair_new', 'pair_update', 'pair_generic'
+    # ws_client.py ora dovrebbe passare dati in formato {"type": "pair_new"/"pair_update", "pair": {...}}
+    event_type = data.get("type")
+    pair_info = data.get("pair")
     
-    # Filtriamo solo gli eventi di tipo 'pair_new' o 'pair_update' per ora
     if not pair_info or event_type not in ["pair_new", "pair_update"]:
+        # print(f"[{datetime.now()}] Messaggio WS non processato (tipo non supportato o dati mancanti): {data}") # Debug se necessario
         return # Se non è un evento di pair valido, non processare
 
     if pair_info.get("chain") == "solana":
         # Estrai dati necessari per i filtri
+        # Tentiamo di leggere i dati da pair_info, se mancano usiamo default 0
         liquidity = pair_info.get("liquidity", {}).get("usd", 0) if isinstance(pair_info.get("liquidity"), dict) else 0
         market_cap = pair_info.get("fdv", 0) if pair_info.get("fdv") else pair_info.get("marketCap", 0) # FDV o marketCap
         pair_created_at_timestamp = pair_info.get("pairCreatedAt")
@@ -81,12 +82,13 @@ async def process_new_pair(data: dict):
                 liquidity = full_pair_data.get("liquidity", {}).get("usd", liquidity)
                 market_cap = full_pair_data.get("fdv", market_cap) if full_pair_data.get("fdv") else full_pair_data.get("marketCap", market_cap)
                 age_minutes = (datetime.now().timestamp() - full_pair_data.get("pairCreatedAt", datetime.now().timestamp())) / 60 if full_pair_data.get("pairCreatedAt") else age_minutes
-                holders = full_pair_data.get("holders", holders)
+                # holders = full_pair_data.get("holders", holders) # Dexscreener REST raramente ha holders
                 volume_24h = full_pair_data.get("volume", {}).get("h24", volume_24h)
 
                 # Simula un valore di holders se non disponibile (assumi che abbia abbastanza per il filtro)
+                # Questo è un workaround finché non integriamo Helius per holders reali
                 if holders == 0 and Config.MIN_HOLDERS > 0:
-                     holders = Config.MIN_HOLDERS + 1 
+                    holders = Config.MIN_HOLDERS + 1 
                 
                 synthetic_pair_for_filter = {
                     'liquidity': liquidity,
