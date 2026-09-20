@@ -1,10 +1,10 @@
     # sniper-bot-optimized/dex/ws_client.py
-import asyncio
-import websockets
-import json
-from datetime import datetime
+    import asyncio  # <--- Questa riga deve iniziare esattamente qui, senza spazi
+    import websockets
+    import json
+    from datetime import datetime
 
-    class DexscreenerWSClient:
+    class DexscreenerWSClient: # <--- Anche la definizione della classe deve iniziare qui
         def __init__(self, ws_url: str):
             self.ws_url = ws_url
             self.websocket = None
