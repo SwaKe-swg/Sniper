@@ -18,7 +18,9 @@ from utils.helius import HeliusClient # Per ora Helius non è integrato nei filt
 
 # --- DEBUG INIZIALE PER VARIABILI D'AMBIENTE ---
 # Controlla se le variabili d'ambiente sono state caricate correttamente
-print(f"DEBUG: TELEGRAM_BOT_TOKEN dal config: {Config.TELEGRAM_BOT_TOKEN[:5]}...{Config.TELEGRAM_BOT_TOKEN[-5:] if Config.TELEGRAM_BOT_TOKEN else 'None'}")
+# Mostra solo una parte del token per sicurezza
+debug_token = Config.TELEGRAM_BOT_TOKEN
+print(f"DEBUG: TELEGRAM_BOT_TOKEN dal config: {debug_token[:5]}...{debug_token[-5:] if debug_token else 'None'}")
 print(f"DEBUG: CHAT_ID dal config: {Config.TELEGRAM_CHAT_ID}")
 if not Config.TELEGRAM_BOT_TOKEN:
     print("ERRORE CRITICO: TELEGRAM_BOT_TOKEN è vuoto o None. Controlla le variabili d'ambiente su Railway!")
@@ -72,10 +74,10 @@ async def process_new_pair(data: dict):
         volume_24h = pair_info.get("volume", {}).get("h24", 0) if isinstance(pair_info.get("volume"), dict) else 0
 
         # Estrai l'indirizzo del token base per il check REST e la cache
-        token_address = pair_info.get("baseToken", {}).get("address")
+token_address = pair_info.get("baseToken", {}).get("address")
         
         if token_address and token_address not in alerted_pairs_cache:
-print(f"[{datetime.now()}] Potenziale pair WS: {pair_info.get('baseToken', {}).get('symbol')}. Recupero info REST per dettagli...")
+            print(f"[{datetime.now()}] Potenziale pair WS: {pair_info.get('baseToken', {}).get('symbol')}. Recupero info REST per dettagli...")
             rest_data = dexscreener_rest_client.get_token_info(token_address)
             
             if rest_data and rest_data.get("pairs"):
@@ -140,11 +142,11 @@ async def monitor_news_narrative():
             if cryptopanic_client:
                 news_items.extend(cryptopanic_client.get_news())
             if gnews_client:
-                news_items.extend(gnews_client.get_news())
+news_items.extend(gnews_client.get_news())
 
             for news in news_items:
                 title = news.get("title", "N/A")
-url = news.get("url", "#")
+                url = news.get("url", "#")
                 
                 if url not in NEWS_CACHE:
                     message = (
