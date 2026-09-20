@@ -8,7 +8,7 @@ from telegram.error import TelegramError
 
 # Importa le configurazioni
 from config import Config
-from dex.ws_client import DexscreenerWSClient
+from dex.ws_client import DexcreenerWSClient
 from dex.rest import DexscreenerRESTClient
 from filters.base import Filters
 from alerts.tg import send_pump_alert # Funzione di alert specifica
@@ -76,8 +76,8 @@ async def process_new_pair(data: dict):
         # Estrai l'indirizzo del token base per il check REST e la cache
         token_address = pair_info.get("baseToken", {}).get("address")
         
-        if token_address and token_address not in alerted_pairs_cache:
-print(f"[{datetime.now()}] Potenziale pair WS: {pair_info.get('baseToken', {}).get('symbol')}. Recupero info REST per dettagli...")
+if token_address and token_address not in alerted_pairs_cache:
+            print(f"[{datetime.now()}] Potenziale pair WS: {pair_info.get('baseToken', {}).get('symbol')}. Recupero info REST per dettagli...")
             rest_data = dexscreener_rest_client.get_token_info(token_address)
             
             if rest_data and rest_data.get("pairs"):
@@ -144,9 +144,9 @@ async def monitor_news_narrative():
             if gnews_client:
                 news_items.extend(gnews_client.get_news())
 
-            for news in news_items:
+for news in news_items:
                 title = news.get("title", "N/A")
-url = news.get("url", "#")
+                url = news.get("url", "#")
                 
                 if url not in NEWS_CACHE:
                     message = (
