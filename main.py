@@ -10,7 +10,7 @@ from config import Config
 from dex.ws_client import DexscreenerWSClient
 from dex.rest import DexscreenerRESTClient
 from filters.base import Filters
-from alerts.tg import send_pump_alert, send_alert
+from alerts.tg import send_pump_alert
 from news.cryptopanic import CryptoPanicClient
 from news.gnews import GNewsClient
 from utils.helius import HeliusClient # Per ora Helius non è integrato nei filtri di base
@@ -136,7 +136,11 @@ async def monitor_news_narrative():
                         f"[Link all'articolo]({url})\n\n"
                         f"Controlla se c'è hype bro."
                     )
-                    await send_alert(telegram_bot, message, Config.TELEGRAM_CHAT_ID)
+                    await telegram_bot.send_message(
+                        chat_id=Config.TELEGRAM_CHAT_ID,
+                        text=message,
+                        parse_mode="Markdown"
+                    )
                     NEWS_CACHE.add(url)
                     print(f"[{datetime.now()}] News alert inviato: {title}")
         except Exception as e:
