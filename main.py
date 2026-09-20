@@ -8,46 +8,27 @@ from telegram.error import TelegramError
 
 # Importa le configurazioni
 from config import Config
-    # sniper-bot-optimized/main.py
-    import os
-    import asyncio
-    import traceback
-    from datetime import datetime
-    from telegram import Bot
-    from telegram.error import TelegramError
-
-    # Importa le configurazioni
-    from config import Config
-    from dex.ws_client import DexscreenerWSClient
-    from dex.rest import DexscreenerRESTClient
-    from filters.base import Filters
-    from alerts.tg import send_pump_alert
-    from news.cryptopanic import CryptoPanicClient
-    from news.gnews import GNewsClient
-    # from utils.helius import HeliusClient # Per ora Helius non è integrato nei filtri di base
-
-    # --- INIZIO DEBUG ---
-    # Controlla se le variabili d'ambiente sono state caricate correttamente
-    print(f"DEBUG: TELEGRAM_BOT_TOKEN dal config: {Config.TELEGRAM_BOT_TOKEN}")
-    print(f"DEBUG: CHAT_ID dal config: {Config.TELEGRAM_CHAT_ID}")
-    if not Config.TELEGRAM_BOT_TOKEN:
-        print("ERRORE CRITICO: TELEGRAM_BOT_TOKEN è vuoto o None. Controlla le variabili d'ambiente su Railway!")
-        raise ValueError("TELEGRAM_BOT_TOKEN non configurato o non letto correttamente.")
-    # --- FINE DEBUG ---
-
-    # Inizializza il bot Telegram
-    telegram_bot = Bot(Config.TELEGRAM_BOT_TOKEN) # <--- Questa riga è quella che dava errore
-    
 from dex.ws_client import DexscreenerWSClient
 from dex.rest import DexscreenerRESTClient
 from filters.base import Filters
 from alerts.tg import send_pump_alert
 from news.cryptopanic import CryptoPanicClient
 from news.gnews import GNewsClient
-# from utils.helius import HeliusClient # Per ora Helius non è integrato nei filtri di base
+from utils.helius import HeliusClient # Per ora Helius non è integrato nei filtri di base
+
+# --- DEBUG INIZIALE PER VARIABILI D'AMBIENTE ---
+# Controlla se le variabili d'ambiente sono state caricate correttamente
+print(f"DEBUG: TELEGRAM_BOT_TOKEN dal config: {Config.TELEGRAM_BOT_TOKEN[:5]}...{Config.TELEGRAM_BOT_TOKEN[-5:] if Config.TELEGRAM_BOT_TOKEN else 'None'}")
+print(f"DEBUG: CHAT_ID dal config: {Config.TELEGRAM_CHAT_ID}")
+if not Config.TELEGRAM_BOT_TOKEN:
+    print("ERRORE CRITICO: TELEGRAM_BOT_TOKEN è vuoto o None. Controlla le variabili d'ambiente su Railway!")
+    raise ValueError("TELEGRAM_BOT_TOKEN non configurato o non letto correttamente.")
+# --- FINE DEBUG INIZIALE ---
+
 
 # Inizializza il bot Telegram
 telegram_bot = Bot(Config.TELEGRAM_BOT_TOKEN)
+
 
 # Inizializza i client per i servizi
 dexscreener_ws_client = DexscreenerWSClient(Config.DEXSCREENER_WS_URL)
@@ -60,7 +41,7 @@ filters_logic = Filters(
 )
 cryptopanic_client = CryptoPanicClient(Config.CRYPTOPANIC_API_KEY) if Config.CRYPTOPANIC_API_KEY else None
 gnews_client = GNewsClient(Config.GNEWS_API_KEY) if Config.GNEWS_API_KEY else None
-# helius_client = HeliusClient(Config.HELIUS_API_KEY) if Config.HELIUS_API_KEY else None
+helius_client = HeliusClient(Config.HELIUS_API_KEY) if Config.HELIUS_API_KEY else None
 
 
 # Cache per evitare alert duplicati
@@ -70,17 +51,20 @@ NEWS_CACHE = set()
 # --- Funzioni di Monitoraggio ---
 async def process_new_pair(data: dict):
     """Processa i dati di un nuovo pair ricevuto da Dexscreener WebSocket."""
-    if data.get("type") == "pair" and data.get("pair") and data.get("pair").get("chain") == "solana":
-        pair_info = data["pair"]
+    # Cerchiamo di normalizzare il formato del pair_info
+    pair_info = data.get("pair") if data.get("type") in ["pair_new", "pair_update", "pair_generic"] else data
+    
+    if pair_info and pair_info.get("chain") == "solana":
         
         # Estrai dati necessari per i filtri
         liquidity = pair_info.get("liquidity", {}).get("usd", 0)
         market_cap = pair_info.get("fdv", 0) # FDV è una buona proxy per Market Cap iniziale
-        age_minutes = (datetime.now().timestamp() - pair_info.get("pairCreatedAt", datetime.now().timestamp())) / 60
+        age_minutes = (datetime.now().timestamp() - pair_info.get("pairCreatedAt", datetime.now().timestamp())) / 60 if pair_info.get("pairCreatedAt") else 0
         holders = pair_info.get("holders", 0) # Dexscreener WS potrebbe non fornire holders direttamente, serve REST
         volume_24h = pair_info.get("volume", {}).get("h24", 0)
 
         # Filtro base (placeholder per i dati mancanti dal WS)
+        # Per dati accurati su holders, serve una chiamata REST successiva
         if liquidity >= Config.MIN_LIQUIDITY and market_cap <= Config.MAX_MARKET_CAP and age_minutes <= Config.MAX_AGE_MINUTES:
             # Effettua chiamata REST per dati più completi (holders, etc.)
             token_address = pair_info.get("baseToken", {}).get("address")
@@ -89,8 +73,20 @@ async def process_new_pair(data: dict):
                 rest_data = dexscreener_rest_client.get_token_info(token_address)
                 
                 if rest_data and rest_data.get("pairs"):
-                    full_pair_data = rest_data["pairs"][0]
+                    full_pair_data = rest_data["pairs"][0] # Prendi il primo (o il più rilevante)
                     
+                    # Aggiorna i dati per i filtri con info REST
+                    # holders = full_pair_data.get("holders", 0) # Dexscreener REST non sempre ha holders diretti
+# Per holders precisi serve API on-chain come Helius o Solscan
+                    # Per ora useremo un valore placeholder per holders o lo ometteremo se non disponibile
+                    
+                    # Qui puoi integrare una chiamata a HeliusClient se hai bisogno di holders precisi
+                    # if helius_client and token_address:
+                    #     holders = helius_client.get_token_holders(token_address) # Implementare questa logica in HeliusClient
+
+                    # Usiamo i filtri con i dati più accurati disponibili
+                    # Placeholder per holders se non disponibili via REST in questo formato
+                    # Potresti dover adattare il filtro in filters.base.py per gestire questo
                     synthetic_pair_for_filter = {
                         'liquidity': full_pair_data.get("liquidity", {}).get("usd", 0),
                         'market_cap': full_pair_data.get("fdv", 0) if full_pair_data.get("fdv") else full_pair_data.get("marketCap", 0),
@@ -104,6 +100,10 @@ async def process_new_pair(data: dict):
                         symbol = full_pair_data.get("baseToken", {}).get("symbol", "N/A")
                         dexscreener_link = f"https://www.dextools.io/app/en/solana/pair-explorer/{full_pair_data.get('pairAddress')}"
                         
+                        price_change_h1 = full_pair_data.get("priceChange", {}).get("h1", 0)
+                        price_change_h6 = full_pair_data.get("priceChange", {}).get("h6", 0)
+                        price_change_h24 = full_pair_data.get("priceChange", {}).get("h24", 0)
+
                         await send_pump_alert(
                             telegram_bot,
                             Config.TELEGRAM_CHAT_ID,
@@ -112,8 +112,9 @@ async def process_new_pair(data: dict):
                             synthetic_pair_for_filter['market_cap'],
                             synthetic_pair_for_filter['liquidity'],
                             synthetic_pair_for_filter['age_minutes'],
-                            synthetic_pair_for_filter['holders'],
-                            full_pair_data.get("volume", {}).get("h24", 0)
+                            synthetic_pair_for_filter['holders'], # Placeholder holders
+                            full_pair_data.get("volume", {}).get("h24", 0),
+                            price_change_h1, price_change_h6, price_change_h24
                         )
                         alerted_pairs_cache.add(token_address)
                         print(f"[{datetime.now()}] Alert inviato per {symbol}.")
@@ -121,11 +122,13 @@ async def process_new_pair(data: dict):
                         print(f"[{datetime.now()}] Pair {symbol} non ha superato i filtri dopo REST check.")
                 else:
                     print(f"[{datetime.now()}] Nessun dato REST trovato per {token_address}.")
+            
+    # Gestisci altri tipi di messaggi da Dexscreener WS se necessario
 
 async def monitor_dexscreener_solana():
     """Connette e monitora Dexscreener WS per nuovi pair e aggiornamenti."""
     dexscreener_ws_client.add_listener(process_new_pair)
-    await dexscreener_ws_client.connect() # Loop infinito che gestisce riconnessioni
+    await dexscreener_ws_client.connect() # Questo è un loop infinito che gestisce riconnessioni
 
 async def monitor_news_narrative():
     """Monitora news e narrative rilevanti (Cryptopanic/Gnews) e invia alert."""
@@ -140,8 +143,7 @@ async def monitor_news_narrative():
             for news in news_items:
                 title = news.get("title", "N/A")
                 url = news.get("url", "#")
-                
-                if url not in NEWS_CACHE:
+if url not in NEWS_CACHE:
                     message = (
                         f"📰 *News/Narrative Alert!* 📰\n\n"
                         f"*{title}*\n"
@@ -158,9 +160,9 @@ async def monitor_news_narrative():
 
 # --- Main Loop del Bot ---
 async def main():
-    print(f"[{datetime.now()}] Zephyr Sniper Bot avviato. BOT_TOKEN: {Config.TELEGRAM_BOT_TOKEN[:5]}... CHAT_ID: {Config.TELEGRAM_CHAT_ID}")
+    print(f"[{datetime.now()}] Zephyr Sniper Bot avviato. BOT_TOKEN: {Config.TELEGRAM_BOT_TOKEN[:5]}...{Config.TELEGRAM_BOT_TOKEN[-5:] if Config.TELEGRAM_BOT_TOKEN else 'None'} CHAT_ID: {Config.TELEGRAM_CHAT_ID}")
     print(f"[{datetime.now()}] Filtri attivi: Liq > ${Config.MIN_LIQUIDITY}, MC < ${Config.MAX_MARKET_CAP}, Age < {Config.MAX_AGE_MINUTES} min, Holders > {Config.MIN_HOLDERS}")
-
+    
     # Avvia il monitoraggio Dexscreener WS in background
     asyncio.create_task(monitor_dexscreener_solana())
     
@@ -168,9 +170,9 @@ async def main():
     if cryptopanic_client or gnews_client:
         asyncio.create_task(monitor_news_narrative())
 
-    # Mantieni il bot in esecuzione
+    # Mantieni il bot in esecuzione (polling o placeholder per comandi futuri)
     while True:
-        await asyncio.sleep(60)
+        await asyncio.sleep(60) # Il polling di Telegram non è necessario qui, i task girano in background
 
 if __name__ == "__main__":
     try:
