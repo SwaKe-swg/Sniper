@@ -9,7 +9,7 @@ from telegram.error import TelegramError
 # Importa le configurazioni
 from config import Config
 from dex.ws_client import DexscreenerWSClient
-from dex.rest import DexscreenerRESTClient
+from dex.rest import DexcreenerRESTClient
 from filters.base import Filters
 from alerts.tg import send_pump_alert # Funzione di alert specifica
 from news.cryptopanic import CryptoPanicClient
@@ -80,7 +80,7 @@ async def process_new_pair(data: dict):
             print(f"[{datetime.now()}] Potenziale pair WS: {pair_info.get('baseToken', {}).get('symbol')}. Recupero info REST per dettagli...")
             rest_data = dexscreener_rest_client.get_token_info(token_address)
             
-            if rest_data and rest_data.get("pairs"):
+            if rest_data and rest_data.get("pairs"): # <--- Questa è la riga 83 incriminata
 full_pair_data = rest_data["pairs"][0] # Prendi il primo (o il più rilevante)
                 
                 # Aggiorna i dati per i filtri con info REST più accurate
