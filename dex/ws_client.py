@@ -43,12 +43,14 @@ class DexscreenerWSClient:
                     print(f"[{datetime.now()}] Errore da Dexscreener WS: {data.get('message')}")
                     continue
                 await self._process_message(data)
-        except websockets.exceptions.ConnectionClosed as e:
-            print(f"[{datetime.now()}] Ascolto interrotto, connessione chiusa: {e}")
-            raise # Rilancia per innescare la riconnessione nel loop connect
-        except Exception as e:
-            print(f"[{datetime.now()}] Errore durante l'ascolto del WebSocket: {e}")
-            raise # Rilancia per innescare la riconnessione nel loop connect
+            # Aggiunto il blocco 'except' per gestire la chiusura della connessione
+            # ed evitare che il 'listen' loop si blocchi in caso di disconnessione pulita.
+            except websockets.exceptions.ConnectionClosed as e:
+                print(f"[{datetime.now()}] Ascolto interrotto, connessione chiusa: {e}")
+                raise # Rilancia per innescare la riconnessione nel loop connect
+            except Exception as e:
+                print(f"[{datetime.now()}] Errore durante l'ascolto del WebSocket: {e}")
+                raise # Rilancia per innescare la riconnessione nel loop connect
 
     async def _process_message(self, data):
         """Processa i messaggi ricevuti dal WebSocket."""
@@ -67,7 +69,7 @@ class DexscreenerWSClient:
                 for listener in self.listeners:
                     await listener({"type": "pair_new", "pair": data["pair"]})
             
-            # Altri messaggi (es. ping/pong, init) ignorati o processati se necessario
+# Altri messaggi (es. ping/pong, init) ignorati o processati se necessario
             # else:
                 # print(f"[{datetime.now()}] Messaggio Dexscreener WS non gestito: {json.dumps(data)}")
                 
@@ -76,7 +78,7 @@ class DexscreenerWSClient:
             self.listeners.append(listener_func)
 
         async def send_ping_task(self):
-"""Task per inviare ping regolarmente e mantenere viva la connessione."""
+            """Task per inviare ping regolarmente e mantenere viva la connessione."""
             while True:
                 if self.is_connected and self.websocket:
                     try:
