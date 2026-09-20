@@ -68,13 +68,13 @@ async def process_new_pair(data: dict):
         # Tentiamo di leggere i dati da pair_info, se mancano usiamo default 0
         liquidity = pair_info.get("liquidity", {}).get("usd", 0) if isinstance(pair_info.get("liquidity"), dict) else 0
         market_cap = pair_info.get("fdv", 0) if pair_info.get("fdv") else pair_info.get("marketCap", 0) # FDV o marketCap
-        pair_created_at_timestamp = pair_info.get("pairCreatedAt")
+pair_created_at_timestamp = pair_info.get("pairCreatedAt")
         age_minutes = (datetime.now().timestamp() - pair_created_at_timestamp) / 60 if pair_created_at_timestamp else 0
         holders = pair_info.get("holders", 0) # Dexscreener WS potrebbe non fornire holders direttamente
         volume_24h = pair_info.get("volume", {}).get("h24", 0) if isinstance(pair_info.get("volume"), dict) else 0
 
         # Estrai l'indirizzo del token base per il check REST e la cache
-token_address = pair_info.get("baseToken", {}).get("address")
+        token_address = pair_info.get("baseToken", {}).get("address")
         
         if token_address and token_address not in alerted_pairs_cache:
             print(f"[{datetime.now()}] Potenziale pair WS: {pair_info.get('baseToken', {}).get('symbol')}. Recupero info REST per dettagli...")
@@ -130,7 +130,7 @@ token_address = pair_info.get("baseToken", {}).get("address")
             else:
                 print(f"[{datetime.now()}] Nessun dato REST trovato per {token_address} o pairs non valido.")
         else:
-            print(f"[{datetime.now()}] Token {token_address} già in cache o non valido per alert.")
+print(f"[{datetime.now()}] Token {token_address} già in cache o non valido per alert.")
     else:
         print(f"[{datetime.now()}] Pair WS non su Solana: {pair_info.get('chain')}")
     
@@ -142,7 +142,7 @@ async def monitor_news_narrative():
             if cryptopanic_client:
                 news_items.extend(cryptopanic_client.get_news())
             if gnews_client:
-news_items.extend(gnews_client.get_news())
+                news_items.extend(gnews_client.get_news())
 
             for news in news_items:
                 title = news.get("title", "N/A")
