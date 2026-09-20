@@ -21,11 +21,6 @@
                     self.is_connected = True
                     print(f"[{datetime.now()}] Connesso a Dexscreener WebSocket.")
                     
-                    # Invia una sottoscrizione iniziale o un ping se necessario per attivare il flusso
-                    # Dexscreener WS per nuovi pair su Solana spesso invia dati automaticamente
-                    # senza necessità di sottoscrizione esplicita a "new_pairs"
-                    # ma è buona pratica inviare un PING per mantenere la connessione attiva
-                    # e avviare il send_ping_task in background.
                     asyncio.create_task(self.send_ping_task())
 
                     await self.listen() # Inizia ad ascoltare i messaggi
@@ -57,23 +52,25 @@
 
         async def _process_message(self, data):
             """Processa i messaggi ricevuti dal WebSocket."""
-            # I messaggi di new_pairs da Dexscreener WebSocket possono arrivare in vari formati
-            # Cerchiamo di normalizzare l'output per i listener
+            # Dexscreener WebSocket invia messaggi di tipo "data" con "pairs" all'interno
+            # e a volte singoli "pair" di tipo "pair"
             
-            # Formato comune per update (o a volte nuovi pair in una lista)
+# Se il messaggio è di tipo "data" e contiene una lista di pairs
             if isinstance(data, dict) and data.get("type") == "data" and isinstance(data.get("data"), dict) and isinstance(data["data"].get("pairs"), list):
                 for pair_data in data["data"]["pairs"]:
+                    # Inoltriamo come "pair_update" con il pair estratto
                     for listener in self.listeners:
-                        await listener({"type": "pair_update", "pair": pair_data}) # Usa 'pair_update' per distinguere
+                        await listener({"type": "pair_update", "pair": pair_data})
             
-            # Formato per un singolo pair (es. un nuovo lancio)
-elif isinstance(data, dict) and data.get("type") == "pair" and isinstance(data.get("pair"), dict):
+            # Se il messaggio è di tipo "pair" e contiene un singolo pair
+            elif isinstance(data, dict) and data.get("type") == "pair" and isinstance(data.get("pair"), dict):
+                # Inoltriamo come "pair_new" con il pair estratto
                 for listener in self.listeners:
                     await listener({"type": "pair_new", "pair": data["pair"]})
             
-            # Se non corrisponde a nessuno dei formati attesi, lo stampiamo per debug
-            else:
-                print(f"[{datetime.now()}] Formato messaggio Dexscreener WS sconosciuto: {json.dumps(data)}")
+            # Altri messaggi (es. ping/pong, init) ignorati o processati se necessario
+            # else:
+                # print(f"[{datetime.now()}] Messaggio Dexscreener WS non gestito: {json.dumps(data)}")
                 
         def add_listener(self, listener_func):
             """Aggiunge una funzione listener per i nuovi messaggi."""
@@ -85,7 +82,7 @@ elif isinstance(data, dict) and data.get("type") == "pair" and isinstance(data.g
                 if self.is_connected and self.websocket:
                     try:
                         await self.websocket.send(json.dumps({"type": "ping"}))
-                        print(f"[{datetime.now()}] Inviato ping a Dexscreener WS.")
+                        # print(f"[{datetime.now()}] Inviato ping a Dexscreener WS.") # Rimosso per non spammare i log
                     except websockets.exceptions.ConnectionClosed:
                         print(f"[{datetime.now()}] Connessione WS chiusa durante il ping.")
                         break # Esci dal loop per innescare la riconnessione
