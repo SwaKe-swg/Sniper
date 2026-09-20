@@ -68,7 +68,7 @@ async def process_new_pair(data: dict):
         # Tentiamo di leggere i dati da pair_info, se mancano usiamo default 0
         liquidity = pair_info.get("liquidity", {}).get("usd", 0) if isinstance(pair_info.get("liquidity"), dict) else 0
         market_cap = pair_info.get("fdv", 0) if pair_info.get("fdv") else pair_info.get("marketCap", 0) # FDV o marketCap
-pair_created_at_timestamp = pair_info.get("pairCreatedAt")
+        pair_created_at_timestamp = pair_info.get("pairCreatedAt")
         age_minutes = (datetime.now().timestamp() - pair_created_at_timestamp) / 60 if pair_created_at_timestamp else 0
         holders = pair_info.get("holders", 0) # Dexscreener WS potrebbe non fornire holders direttamente
         volume_24h = pair_info.get("volume", {}).get("h24", 0) if isinstance(pair_info.get("volume"), dict) else 0
@@ -81,7 +81,7 @@ pair_created_at_timestamp = pair_info.get("pairCreatedAt")
             rest_data = dexscreener_rest_client.get_token_info(token_address)
             
             if rest_data and rest_data.get("pairs"):
-                full_pair_data = rest_data["pairs"][0] # Prendi il primo (o il più rilevante)
+full_pair_data = rest_data["pairs"][0] # Prendi il primo (o il più rilevante)
                 
                 # Aggiorna i dati per i filtri con info REST più accurate
                 liquidity = full_pair_data.get("liquidity", {}).get("usd", liquidity)
@@ -130,7 +130,7 @@ pair_created_at_timestamp = pair_info.get("pairCreatedAt")
             else:
                 print(f"[{datetime.now()}] Nessun dato REST trovato per {token_address} o pairs non valido.")
         else:
-print(f"[{datetime.now()}] Token {token_address} già in cache o non valido per alert.")
+            print(f"[{datetime.now()}] Token {token_address} già in cache o non valido per alert.")
     else:
         print(f"[{datetime.now()}] Pair WS non su Solana: {pair_info.get('chain')}")
     
@@ -153,7 +153,7 @@ async def monitor_news_narrative():
                         f"📰 *News/Narrative Alert!* 📰\n\n"
                         f"*{title}*\n"
                         f"[Link all'articolo]({url})\n\n"
-                        f"Controlla se c'è hype bro."
+f"Controlla se c'è hype bro."
                     )
                     await send_alert(message, Config.TELEGRAM_CHAT_ID)
                     NEWS_CACHE.add(url)
