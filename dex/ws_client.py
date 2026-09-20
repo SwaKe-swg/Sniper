@@ -1,8 +1,8 @@
     # sniper-bot-optimized/dex/ws_client.py
-    import asyncio
-    import websockets
-    import json
-    from datetime import datetime
+import asyncio
+import websockets
+import json
+from datetime import datetime
 
     class DexscreenerWSClient:
         def __init__(self, ws_url: str):
