@@ -9,7 +9,7 @@ from telegram.error import TelegramError
 # Importa le configurazioni
 from config import Config
 from dex.ws_client import DexscreenerWSClient
-from dex.rest import DexcreenerRESTClient
+from dex.rest import DexscreenerRESTClient
 from filters.base import Filters
 from alerts.tg import send_pump_alert # Funzione di alert specifica
 from news.cryptopanic import CryptoPanicClient
@@ -77,11 +77,11 @@ async def process_new_pair(data: dict):
         token_address = pair_info.get("baseToken", {}).get("address")
         
         if token_address and token_address not in alerted_pairs_cache:
-            print(f"[{datetime.now()}] Potenziale pair WS: {pair_info.get('baseToken', {}).get('symbol')}. Recupero info REST per dettagli...")
+print(f"[{datetime.now()}] Potenziale pair WS: {pair_info.get('baseToken', {}).get('symbol')}. Recupero info REST per dettagli...")
             rest_data = dexscreener_rest_client.get_token_info(token_address)
             
-            if rest_data and rest_data.get("pairs"): # <--- Questa è la riga 83 incriminata
-full_pair_data = rest_data["pairs"][0] # Prendi il primo (o il più rilevante)
+            if rest_data and rest_data.get("pairs"):
+                full_pair_data = rest_data["pairs"][0] # Prendi il primo (o il più rilevante)
                 
                 # Aggiorna i dati per i filtri con info REST più accurate
                 liquidity = full_pair_data.get("liquidity", {}).get("usd", liquidity)
@@ -146,14 +146,14 @@ async def monitor_news_narrative():
 
             for news in news_items:
                 title = news.get("title", "N/A")
-                url = news.get("url", "#")
+url = news.get("url", "#")
                 
                 if url not in NEWS_CACHE:
                     message = (
                         f"📰 *News/Narrative Alert!* 📰\n\n"
                         f"*{title}*\n"
                         f"[Link all'articolo]({url})\n\n"
-f"Controlla se c'è hype bro."
+                        f"Controlla se c'è hype bro."
                     )
                     await send_alert(message, Config.TELEGRAM_CHAT_ID)
                     NEWS_CACHE.add(url)
