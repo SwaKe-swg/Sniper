@@ -1,5 +1,5 @@
+# sniper-bot-optimized/main.py
 import os
-import json
 import asyncio
 import traceback
 from datetime import datetime
@@ -11,12 +11,13 @@ from config import Config
 from dex.ws_client import DexscreenerWSClient
 from dex.rest import DexscreenerRESTClient
 from filters.base import Filters
-from alerts.tg import send_pump_alert
+from alerts.tg import send_pump_alert # Funzione di alert specifica
 from news.cryptopanic import CryptoPanicClient
 from news.gnews import GNewsClient
 from utils.helius import HeliusClient # Per ora Helius non è integrato nei filtri di base
 
 # --- DEBUG INIZIALE PER VARIABILI D'AMBIENTE ---
+# Controlla se le variabili d'ambiente sono state caricate correttamente
 print(f"DEBUG: TELEGRAM_BOT_TOKEN dal config: {Config.TELEGRAM_BOT_TOKEN[:5]}...{Config.TELEGRAM_BOT_TOKEN[-5:] if Config.TELEGRAM_BOT_TOKEN else 'None'}")
 print(f"DEBUG: CHAT_ID dal config: {Config.TELEGRAM_CHAT_ID}")
 if not Config.TELEGRAM_BOT_TOKEN:
@@ -49,8 +50,10 @@ NEWS_CACHE = set()
 
 # --- Funzioni di Monitoraggio ---
 async def process_new_pair(data: dict):
-    """Processa i dati di un nuovo pair ricevuto da Dexscreener WebSocket."""
-    # ws_client.py ora dovrebbe passare dati in formato {"type": "pair_new"/"pair_update", "pair": {...}}
+    """
+    Processa i dati di un pair ricevuto da Dexscreener WebSocket.
+    Si aspetta un formato {"type": "pair_new"/"pair_update", "pair": {...}} da ws_client.py
+    """
     event_type = data.get("type")
     pair_info = data.get("pair")
     
@@ -72,7 +75,7 @@ async def process_new_pair(data: dict):
         token_address = pair_info.get("baseToken", {}).get("address")
         
         if token_address and token_address not in alerted_pairs_cache:
-            print(f"[{datetime.now()}] Potenziale pair WS: {pair_info.get('baseToken', {}).get('symbol')}. Recupero info REST per dettagli...")
+print(f"[{datetime.now()}] Potenziale pair WS: {pair_info.get('baseToken', {}).get('symbol')}. Recupero info REST per dettagli...")
             rest_data = dexscreener_rest_client.get_token_info(token_address)
             
             if rest_data and rest_data.get("pairs"):
@@ -88,7 +91,7 @@ async def process_new_pair(data: dict):
                 # Simula un valore di holders se non disponibile (assumi che abbia abbastanza per il filtro)
                 # Questo è un workaround finché non integriamo Helius per holders reali
                 if holders == 0 and Config.MIN_HOLDERS > 0:
-                    holders = Config.MIN_HOLDERS + 1 
+                     holders = Config.MIN_HOLDERS + 1 
                 
                 synthetic_pair_for_filter = {
                     'liquidity': liquidity,
@@ -114,7 +117,7 @@ async def process_new_pair(data: dict):
                         synthetic_pair_for_filter['market_cap'],
                         synthetic_pair_for_filter['liquidity'],
                         synthetic_pair_for_filter['age_minutes'],
-                        synthetic_pair_for_filter['holders'],
+                        synthetic_pair_for_filter['holders'], # Placeholder holders
                         volume_24h,
                         price_change_h1, price_change_h6, price_change_h24
                     )
@@ -128,12 +131,7 @@ async def process_new_pair(data: dict):
             print(f"[{datetime.now()}] Token {token_address} già in cache o non valido per alert.")
     else:
         print(f"[{datetime.now()}] Pair WS non su Solana: {pair_info.get('chain')}")
-
-async def monitor_dexscreener_solana():
-    """Connette e monitora Dexscreener WS per nuovi pair e aggiornamenti."""
-    dexscreener_ws_client.add_listener(process_new_pair)
-    await dexscreener_ws_client.connect()
-
+    
 async def monitor_news_narrative():
     """Monitora news e narrative rilevanti (Cryptopanic/Gnews) e invia alert."""
     while True:
@@ -146,7 +144,7 @@ async def monitor_news_narrative():
 
             for news in news_items:
                 title = news.get("title", "N/A")
-                url = news.get("url", "#")
+url = news.get("url", "#")
                 
                 if url not in NEWS_CACHE:
                     message = (
@@ -155,11 +153,7 @@ async def monitor_news_narrative():
                         f"[Link all'articolo]({url})\n\n"
                         f"Controlla se c'è hype bro."
                     )
-                    await telegram_bot.send_message(
-                        chat_id=Config.TELEGRAM_CHAT_ID,
-                        text=message,
-                        parse_mode="Markdown"
-                    )
+                    await send_alert(message, Config.TELEGRAM_CHAT_ID)
                     NEWS_CACHE.add(url)
                     print(f"[{datetime.now()}] News alert inviato: {title}")
         except Exception as e:
@@ -179,9 +173,9 @@ async def main():
     if cryptopanic_client or gnews_client:
         asyncio.create_task(monitor_news_narrative())
 
-    # Mantieni il bot in esecuzione
+    # Mantieni il bot in esecuzione (polling o placeholder per comandi futuri)
     while True:
-        await asyncio.sleep(60)
+        await asyncio.sleep(60) # Il polling di Telegram non è necessario qui, i task girano in background
 
 if __name__ == "__main__":
     try:
