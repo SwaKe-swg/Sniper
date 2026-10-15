@@ -1,0 +1,17 @@
+{
+  "name": "paperdesk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Solana research paper-trading desk. No wallet or live execution.",
+  "type": "module",
+  "scripts": {
+    "dry": "node src/cli.js dry",
+    "paper": "node src/cli.js paper",
+    "status": "node src/cli.js status",
+    "dashboard": "node src/dashboard.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
