@@ -1,0 +1,33 @@
+{
+  "mode": "paper",
+  "network": "solana",
+  "cycleSeconds": 60,
+  "discovery": {
+    "source": "geckoterminal",
+    "maxCandidates": 20,
+    "requestTimeoutMs": 12000
+  },
+  "filters": {
+    "minLiquidityUsd": 10000,
+    "minVolumeH1Usd": 5000,
+    "minPoolAgeMinutes": 2,
+    "maxPoolAgeHours": 24,
+    "maxAbsPriceChangeM5Pct": 250
+  },
+  "paper": {
+    "startingBalanceUsd": 1000,
+    "autoEnter": true,
+    "maxOpenPositions": 5,
+    "positionPct": 0.02,
+    "maxPositionUsd": 25,
+    "feeBps": 30,
+    "baseSlippageBps": 25,
+    "maxSlippageBps": 500,
+    "stopLossPct": 0.15,
+    "takeProfitPct": 0.30,
+    "maxHoldMinutes": 180
+  },
+  "dashboard": {
+    "port": 8790
+  }
+}
